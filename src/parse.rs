@@ -67,6 +67,7 @@ pub mod stdp { // parsers for std types
 }
 
 /// Обернуть строку в кавычки, экранировав кавычки, которые в строке уже есть
+#[cfg(test)]
 fn quote (input: &str) -> String {
     let mut result = String::from("\"");
     result.extend(input.chars()
@@ -280,46 +281,6 @@ where A0: Parser,
 /// (в Rust нет чего-то, вроде variadic templates из C++)
 fn all2<A0: Parser, A1: Parser>(a0: A0, a1: A1) -> All<(A0,A1)> {
     All { parser: (a0, a1) }
-}
-impl<A0,A1,A2> Parser for All<(A0,A1,A2)>
-where A0: Parser,
-      A1: Parser,
-      A2: Parser,
-{
-    type Dest = (A0::Dest, A1::Dest, A2::Dest);
-    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
-        let (remaining, a0) = self.parser.0.parse(input)?;
-        let (remaining, a1) = self.parser.1.parse(remaining)?;
-        self.parser.2.parse(remaining).map(
-            |(remaining, a2)| (remaining, (a0, a1, a2))
-        )
-    }
-}
-/// Конструктор [All] для трёх парсеров
-/// (в Rust нет чего-то, вроде variadic templates из C++)
-fn all3<A0: Parser, A1: Parser, A2: Parser>(a0: A0, a1: A1, a2: A2) -> All<(A0,A1,A2)> {
-    All { parser: (a0, a1, a2) }
-}
-impl<A0,A1,A2,A3> Parser for All<(A0,A1,A2,A3)>
-where A0: Parser,
-      A1: Parser,
-      A2: Parser,
-      A3: Parser,
-{
-    type Dest = (A0::Dest, A1::Dest, A2::Dest, A3::Dest);
-    fn parse<'a>(&self, input: &'a str) -> Result<(&'a str, Self::Dest), ()> {
-        let (remaining, a0) = self.parser.0.parse(input)?;
-        let (remaining, a1) = self.parser.1.parse(remaining)?;
-        let (remaining, a2) = self.parser.2.parse(remaining)?;
-        self.parser.3.parse(remaining).map(
-            |(remaining, a3)| (remaining, (a0, a1, a2, a3))
-        )
-    }
-}
-/// Конструктор [All] для четырёх парсеров
-/// (в Rust нет чего-то, вроде variadic templates из C++)
-fn all4<A0: Parser, A1: Parser, A2: Parser, A3: Parser>(a0: A0, a1: A1, a2: A2, a3: A3) -> All<(A0,A1,A2,A3)> {
-    All { parser: (a0, a1, a2, a3) }
 }
 /// Комбинатор, который вытаскивает значения из пары `"ключ":значение,`.
 /// Для простоты реализации, запятая всегда нужна в конце пары ключ-значение,
@@ -592,30 +553,6 @@ impl Parsable for AuthData {
                         .unwrap_or_else(|_| Box::new([0;AUTHDATA_SIZE]))
             )
         )
-    }
-}
-
-/// Конструкция 'либо-либо'
-enum Either<Left,Right> {
-    Left(Left),
-    Right(Right),
-}
-
-/// Статус, которые можно парсить
-enum Status {
-    Ok,
-    Err(String),
-}
-impl Parsable for Status {
-    type Parser = Alt<(Map<Tag,fn(())->Self>,Map<Delimited<Tag,Unquote,Tag>,fn(String)->Self>)>;
-    fn parser () -> Self::Parser {
-        fn to_ok(_: ()) -> Status {
-            Status::Ok
-        }
-        fn to_err(error: String) -> Status {
-            Status::Err(error)
-        }
-        alt2(map(tag("Ok"), to_ok),map(delimited(tag("Err("),unquote(),tag(")")), to_err))
     }
 }
 
